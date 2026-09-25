@@ -3,474 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evaluación de Física - Primer Quimestre / Trimestre</title>
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome para Íconos -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --bs-primary: #0d6efd;
-            --bs-secondary: #6c757d;
-        }
-        
-        /* Deshabilitar selección de texto */
-        body {
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            background-color: #f8f9fa;
-        }
+    <title>Evaluación de Física - 50 Reactivos</title>
+    
+    <!-- KaTeX Render -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 
-        .no-copy {
-            -webkit-touch-callout: none;
-        }
+    <!-- Librerías para Descarga e Impresión PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-        /* Estilo del temporizador flotante */
-        #timer-card {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            z-index: 1050;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-            transition: all 0.3s ease;
-        }
-
-        .question-card {
-            margin-bottom: 1.5rem;
-            border-left: 4px solid var(--bs-primary);
-            transition: transform 0.1s ease;
-        }
-
-        .question-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-
-        .form-check-input:checked {
-            background-color: var(--bs-primary);
-            border-color: var(--bs-primary);
-        }
-
-        /* Bloqueo total de interfaz cuando expira o supera intentos */
-        #block-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 9999;
-            color: white;
-            text-align: center;
-            padding-top: 20vh;
-        }
-    </style>
+    <!-- Estilos Externos -->
+    <link rel="stylesheet" href="index.css">
 </head>
-<body oncontextmenu="return false;">
+<body>
 
-    <!-- Overlay de Bloqueo por Infracción o Límite de Intentos -->
-    <div id="block-overlay">
-        <div class="container">
-            <i class="fas fa-lock fa-5x text-danger mb-4"></i>
-            <h1 class="display-4 font-weight-bold" id="block-title">ACCESO BLOQUEADO</h1>
-            <p class="lead" id="block-message">Ha superado el número máximo de intentos permitidos en este dispositivo o ha violado las reglas de seguridad de la prueba.</p>
+    <!-- Modal de Identificación y Reingreso Seguros -->
+    <div id="fullscreen-overlay" class="overlay-modal">
+        <div class="modal-box">
+            <h1>PLATAFORMA DE EVALUACIÓN ESTANDARIZADA</h1>
+            <p id="modal-desc">Ingrese sus datos institucionales para comenzar. La prueba funciona en modo supervisado (Pantalla Completa Obligatoria).</p>
+            
+            <form id="student-form">
+                <div class="form-group">
+                    <label for="student-name">Nombre y Apellido Completo:</label>
+                    <input type="text" id="student-name" required placeholder="Ej. Carlos Mendoza">
+                </div>
+                <div class="form-group">
+                    <label for="student-id">Número de Cédula / Identificación:</label>
+                    <input type="text" id="student-id" required placeholder="Ej. 1104523891">
+                </div>
+                <button type="submit" id="btn-start-submit" class="btn-start">Iniciar / Reanudar Evaluación</button>
+            </form>
         </div>
     </div>
 
-    <!-- Modales de Alerta de Seguridad -->
-    <div class="modal fade" id="securityModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-danger">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Advertencia de Seguridad</h5>
-                </div>
-                <div class="modal-body text-center">
-                    <p class="fs-5">Ha cambiado de pestaña o ha salido del modo pantalla completa.</p>
-                    <p class="text-muted">Esta acción queda registrada por motivos de honestidad académica.</p>
-                    <div class="alert alert-warning mb-0">
-                        <strong>Faltas registradas: <span id="strike-count">0</span>/3</strong>
+    <!-- App Principal -->
+    <div id="app-container">
+        <header>
+            <div class="header-title">
+                <h2>EVALUACIÓN INTEGRAL DE FÍSICA</h2>
+                <span id="user-display">EVALUACIÓN DE HABILIDADES Y CONCEPTOS</span>
+            </div>
+            <div class="timer-badge" id="timer-display">
+                ⏱️ <span id="timer">80:00</span>
+            </div>
+        </header>
+
+        <div class="dashboard-body" id="exam-screen">
+            <main>
+                <div>
+                    <div id="infraction-banner">
+                        ⚠️ ALERTA DE SEGURIDAD: Pérdida de foco o salida detectada (<span id="infraction-count">0</span>/3). Al acumular 3 la prueba se auto-enviará.
+                    </div>
+
+                    <div class="question-card">
+                        <div class="question-meta">
+                            <span id="question-number">Pregunta 01 de 50</span>
+                            <span id="question-topic">Tema: Movimiento y Trayectoria</span>
+                        </div>
+                        <div class="question-text" id="question-text"></div>
+                        <div class="options-group" id="options-container"></div>
                     </div>
                 </div>
-                <div class="modal-footer justify-content-center">
-                    <button type="button" class="btn btn-danger" onclick="resumeExam()">Entendido y Continuar</button>
+
+                <div class="navigation-controls">
+                    <button class="btn-nav" id="btn-prev">Anterior</button>
+                    <button class="btn-nav" id="btn-next">Siguiente</button>
+                </div>
+            </main>
+
+            <aside>
+                <div>
+                    <div class="progress-section">
+                        <div class="progress-label">
+                            <span>Avance de Respuestas</span>
+                            <span id="progress-percent">0%</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="progress-fill"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid-title">Navegación de Preguntas</div>
+                    <div class="reactive-grid" id="reactive-grid"></div>
+                </div>
+
+                <button class="btn-finish" id="btn-finish-exam">Finalizar Examen</button>
+            </aside>
+        </div>
+
+        <!-- Pantalla de Calificación Final y Reporte -->
+        <div id="results-screen">
+            <div class="results-container" id="report-content">
+                <div class="report-header">
+                    <h1 style="color: var(--primary); margin-bottom: 5px;">Informe Oficial de Evaluación</h1>
+                    <p style="color: var(--text-secondary); font-size: 0.95rem;">Examen de Física General - 50 Reactivos</p>
+                    
+                    <div class="student-info-box" style="margin-top: 15px; padding: 12px; background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px;">
+                        <p><strong>Estudiante:</strong> <span id="res-student-name">-</span></p>
+                        <p><strong>Cédula / ID:</strong> <span id="res-student-id">-</span></p>
+                        <p><strong>Fecha de Realización:</strong> <span id="res-date">-</span></p>
+                    </div>
+                </div>
+                
+                <div class="score-cards" style="margin-top: 20px;">
+                    <div class="card-stat">
+                        <h3>Aciertos obtenidos</h3>
+                        <div class="value" id="res-score">0/50</div>
+                    </div>
+                    <div class="card-stat">
+                        <h3>Calificación / 10</h3>
+                        <div class="value" id="res-grade" style="color: var(--accent);">0.00</div>
+                    </div>
+                    <div class="card-stat">
+                        <h3>Rendimiento %</h3>
+                        <div class="value" id="res-accuracy">0%</div>
+                    </div>
+                    <div class="card-stat">
+                        <h3>Infracciones</h3>
+                        <div class="value" style="color: var(--danger);" id="res-infractions">0</div>
+                    </div>
+                </div>
+
+                <div class="action-buttons-group">
+                    <button class="btn-download" id="btn-download-pdf">📄 Descargar Reporte (PDF)</button>
+                    <button class="btn-print" id="btn-print-page">🖨️ Imprimir Reporte</button>
+                    <button class="btn-restart" id="btn-restart-exam">🔄 Volver a Intentar</button>
+                </div>
+
+                <div class="review-section">
+                    <h2 style="margin-bottom: 20px; font-size: 1.15rem; color: var(--primary);">Retroalimentación y Solucionario Detallado</h2>
+                    <div id="review-list"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Contador de Tiempo Flotante (80 min) -->
-    <div id="timer-card" class="card bg-dark text-white p-2 px-3">
-        <div class="d-flex align-items-center">
-            <i class="fas fa-clock fa-lg text-warning me-2"></i>
-            <div>
-                <small class="d-block text-muted" style="font-size: 0.7rem; line-height: 1;">TIEMPO RESTANTE</small>
-                <span id="timer-display" class="fw-bold fs-5 text-mono">80:00</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Encabezado Principal -->
-    <header class="bg-primary text-white py-4 mb-4 shadow">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h1 class="h2 mb-1"><i class="fas fa-atom me-2"></i>Evaluación Diagnóstica de Física</h1>
-                    <p class="mb-0 opacity-75">Curso: Bachillerato General Unificado | 50 Reactivos Teórico-Prácticos</p>
-                </div>
-                <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                    <span class="badge bg-light text-primary fs-6"><i class="fas fa-globe me-1"></i> Modulo Online</span>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <div class="container pb-5">
-        <!-- Formulario Datos Estudiante -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white fw-bold text-uppercase">
-                <i class="fas fa-user-graduate me-2 text-primary"></i>Datos del Estudiante
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label for="studentName" class="form-label font-weight-bold">Apellidos y Nombres:</label>
-                        <input type="text" class="form-control" id="studentName" placeholder="Ej. Pérez Gómez Juan" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="studentCourse" class="form-label font-weight-bold">Curso / Paralelo:</label>
-                        <input type="text" class="form-control" id="studentCourse" placeholder="Ej. 3ro BGU 'A'" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="studentDate" class="form-label font-weight-bold">Fecha:</label>
-                        <input type="date" class="form-control" id="studentDate" required>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Instrucciones -->
-        <div class="alert alert-info shadow-sm mb-4">
-            <h5 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Instrucciones de la Evaluación:</h5>
-            <ul class="mb-0 ps-3">
-                <li>Consta de <strong>50 preguntas</strong> de opción múltiple con única respuesta.</li>
-                <li>Dispone de un tiempo límite total e improrrogable de <strong>80 minutos</strong>.</li>
-                <li>Considere para todos los ejercicios de cálculo la aceleración de la gravedad como $g = 9,8 \text{ m/s}^2$.</li>
-                <li>Se permite hasta un máximo de <strong>3 intentos</strong> por dispositivo.</li>
-                <li>No intente cambiar de pestaña ni salir de la pantalla completa; de lo contrario, el sistema registrará una falta académica.</li>
-            </ul>
-        </div>
-
-        <!-- Cuestionario Dinámico -->
-        <form id="quiz-form">
-            <div id="questions-container">
-                <!-- Las 50 preguntas se renderizan dinámicamente con JavaScript -->
-            </div>
-
-            <!-- Botón de Envío -->
-            <div class="card shadow-sm mt-4">
-                <div class="card-body text-center">
-                    <button type="button" class="btn btn-success btn-lg px-5 shadow" onclick="confirmSubmission()">
-                        <i class="fas fa-paper-plane me-2"></i> Finalizar y Guardar Respuestas
-                    </button>
-                </div>
-            </div>
-        </form>
-    </div>
-
-    <!-- Bootstrap 5 JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <script>
-        // ==========================================
-        // CONTROL DE INTENTOS LOCALSTORAGE (Máx 3)
-        // ==========================================
-        const MAX_ATTEMPTS = 3;
-        let currentAttempts = parseInt(localStorage.getItem('exam_attempts') || '0');
-
-        function checkAttemptLimit() {
-            if (currentAttempts >= MAX_ATTEMPTS) {
-                document.getElementById('block-title').innerText = "LÍMITE DE INTENTOS EXCEDIDO";
-                document.getElementById('block-message').innerText = "Ha alcanzado el límite máximo de 3 intentos permitidos para esta evaluación en este dispositivo.";
-                document.getElementById('block-overlay').style.display = 'block';
-                return false;
-            }
-            return true;
-        }
-
-        // Incrementa intento al iniciar/cargar de forma efectiva
-        if (checkAttemptLimit()) {
-            currentAttempts++;
-            localStorage.setItem('exam_attempts', currentAttempts.toString());
-        }
-
-        // Auto-llenar fecha de hoy
-        document.getElementById('studentDate').valueAsDate = new Date();
-
-        // ==========================================
-        // BANCO DE 50 PREGUNTAS (g = 9,8 m/s^2, Sin aclaraciones de ángulos)
-        // ==========================================
-        const questionsData = [
-            // SISTEMA INTERNACIONAL Y CONVERSIONES
-            { q: "1. ¿Cuál de las siguientes magnitudes corresponde a una magnitud fundamental en el Sistema Internacional (SI)?", options: ["Velocidad", "Fuerza", "Masa", "Aceleración"], correct: 2 },
-            { q: "2. Al convertir una rapidez de 72 km/h a metros por segundo (m/s), el resultado obtenido es:", options: ["15 m/s", "20 m/s", "25 m/s", "30 m/s"], correct: 1 },
-            { q: "3. Exprese la masa de 0,0045 kg en miligramos (mg):", options: ["45 mg", "450 mg", "4500 mg", "0,45 mg"], correct: 2 },
-            { q: "4. ¿Cuál es el equivalente de un área de 5 m² expresada en cm²?", options: ["500 cm²", "5000 cm²", "50 000 cm²", "500 000 cm²"], correct: 2 },
-            { q: "5. ¿Cuál de las siguientes opciones representa una unidad derivada del Sistema Internacional?", options: ["Segundo (s)", "Kelvin (K)", "Newton (N)", "Metro (m)"], correct: 2 },
-
-            // VECTORES
-            { q: "6. Un vector $\\vec{A}$ tiene componentes cartesianas $A_x = 6\\text{ m}$ y $A_y = 8\\text{ m}$. ¿Cuál es el módulo del vector?", options: ["10 m", "14 m", "2 m", "48 m"], correct: 0 },
-            { q: "7. Si el módulo de un vector es de 20 unidades y forma un ángulo de $30^\\circ$ con el eje positivo X, ¿cuál es su componente horizontal $A_x$?", options: ["10,0 unidades", "17,32 unidades", "15,0 unidades", "8,66 unidades"], correct: 1 },
-            { q: "8. Dados los vectores $\\vec{A} = (3, -2)$ y $\\vec{B} = (-1, 5)$, el vector resultante $\\vec{R} = \\vec{A} + \\vec{B}$ es:", options: ["(2, 3)", "(4, -7)", "(-3, -10)", "(2, -3)"], correct: 0 },
-            { q: "9. El producto escalar entre los vectores $\\vec{A} = 4\\hat{i} + 3\\hat{j}$ y $\\vec{B} = 2\\hat{i} - 1\\hat{j}$ equivale a:", options: ["11", "5", "8", "14"], correct: 1 },
-            { q: "10. ¿Cuál es la dirección (ángulo respecto al eje +X) de un vector cuyas componentes son $X = -5$ y $Y = 5$?", options: ["45°", "135°", "225°", "315°"], correct: 1 },
-
-            // CINEMÁTICA - MRU Y MRUV
-            { q: "11. Un vehículo avanza con MRU a una velocidad constante de 25 m/s. ¿Qué distancia recorre al cabo de 12 segundos?", options: ["200 m", "250 m", "300 m", "350 m"], correct: 2 },
-            { q: "12. Un automóvil parte del reposo y acelera uniformemente a razón de $2\\text{ m/s}^2$. ¿Qué velocidad alcanza a los 8 segundos?", options: ["10 m/s", "16 m/s", "32 m/s", "64 m/s"], correct: 1 },
-            { q: "13. Un tren reduce su velocidad uniformemente de 30 m/s a 10 m/s en un lapso de 5 segundos. La magnitud de su desaceleración es:", options: ["2 m/s²", "4 m/s²", "6 m/s²", "8 m/s²"], correct: 1 },
-            { q: "14. ¿Qué distancia recorre un objeto que parte del reposo y acelera a $3\\text{ m/s}^2$ durante 6 segundos?", options: ["18 m", "36 m", "54 m", "108 m"], correct: 2 },
-            { q: "15. La pendiente de la gráfica Posición vs. Tiempo ($x$ vs $t$) en un movimiento rectilíneo representa la:", options: ["Aceleración", "Desplazamiento", "Velocidad", "Fuerza neta"], correct: 2 },
-
-            // CAÍDA LIBRE Y TIRO VERTICAL (g = 9.8 m/s²)
-            { q: "16. Se deja caer un cuerpo libremente desde lo alto de una torre. ¿Cuál es su velocidad al cabo de 3 segundos? ($g = 9,8\\text{ m/s}^2$)", options: ["19,6 m/s", "29,4 m/s", "44,1 m/s", "9,8 m/s"], correct: 1 },
-            { q: "17. ¿Desde qué altura se soltó un objeto si tarda 2 segundos en tocar el suelo en caída libre? ($g = 9,8\\text{ m/s}^2$)", options: ["9,8 m", "19,6 m", "39,2 m", "4,9 m"], correct: 1 },
-            { q: "18. Se lanza verticalmente hacia arriba un objeto con una velocidad inicial de $29,4\\text{ m/s}$. ¿Cuánto tiempo tarda en alcanzar su altura máxima? ($g = 9,8\\text{ m/s}^2$)", options: ["2 s", "3 s", "4,5 s", "6 s"], correct: 1 },
-            { q: "19. ¿Cuál es el valor de la velocidad de un objeto lanzado hacia arriba en el punto más alto de su trayectoria?", options: ["9,8 m/s", "Depende de la masa", "0 m/s", "Igual a la velocidad inicial"], correct: 2 },
-            { q: "20. Cuando un cuerpo realiza un movimiento de caída libre, su aceleración durante todo el recorrido es:", options: ["Cero", "Creciente", "Constante e igual a g", "Variable según la masa"], correct: 2 },
-
-            // MOVIMIENTO PARABÓLICO
-            { q: "21. En el movimiento parabólico de proyectiles, la componente horizontal de la velocidad ($v_x$) se caracteriza por ser:", options: ["Nula", "Variable uniformemente", "Constante", "Igual a la componente vertical"], correct: 2 },
-            { q: "22. Se dispara un proyectil con una velocidad inicial de $50\\text{ m/s}$ y un ángulo de inclinación de $37^\\circ$. ¿Cuál es la componente horizontal de su velocidad inicial?", options: ["30 m/s", "40 m/s", "50 m/s", "25 m/s"], correct: 1 },
-            { q: "23. Un proyectil es lanzado con un ángulo respecto a la horizontal. ¿Para qué ángulo de lanzamiento se obtiene el alcance horizontal máximo?", options: ["30°", "45°", "60°", "90°"], correct: 1 },
-            { q: "24. Un proyectil alcanza una altura máxima en 4 segundos. ¿Cuál es su tiempo total de vuelo si retorna al mismo nivel de lanzamiento?", options: ["4 s", "6 s", "8 s", "12 s"], correct: 2 },
-            { q: "25. En el punto de máxima altura de una trayectoria parabólica, la velocidad total del proyectil es:", options: ["Completamente nula", "Igual únicamente a la componente horizontal vx", "Igual a la componente vertical vy", "Igual a la velocidad inicial de disparo"], correct: 1 },
-
-            // MOVIMIENTO CIRCULAR UNIFORME (MCU)
-            { q: "26. Un disco gira completando 120 vueltas por minuto (120 RPM). ¿Cuál es su frecuencia expresada en Hertz (Hz)?", options: ["2 Hz", "60 Hz", "120 Hz", "0,5 Hz"], correct: 0 },
-            { q: "27. ¿Cuál es la velocidad angular ($\\omega$) en rad/s de una partícula cuya frecuencia de giro es de $5\\text{ Hz}$?", options: ["5π rad/s", "10π rad/s", "2,5π rad/s", "20π rad/s"], correct: 1 },
-            { q: "28. Una partícula describe una trayectoria circular de $2\\text{ m}$ de radio con una velocidad tangencial de $6\\text{ m/s}$. Su aceleración centrípeta vale:", options: ["3 m/s²", "12 m/s²", "18 m/s²", "36 m/s²"], correct: 2 },
-            { q: "29. El tiempo que tarda un cuerpo en efectuar una revolución o vuelta completa en el MCU se denomina:", options: ["Frecuencia", "Periodo", "Fase", "Pulsación"], correct: 1 },
-            { q: "30. La dirección del vector aceleración centrípeta apunta en todo instante hacia:", options: ["La tangente de la trayectoria", "El centro de la curva", "El exterior del círculo", "La misma dirección del movimiento"], correct: 1 },
-
-            // DINÁMICA - LEYES DE NEWTON Y ROZAMIENTO
-            { q: "31. Un bloque de masa $m = 10\\text{ kg}$ es empujado sobre una superficie horizontal lisa por una fuerza neta de $40\\text{ N}$. ¿Qué aceleración experimenta?", options: ["2 m/s²", "4 m/s²", "400 m/s²", "0,25 m/s²"], correct: 1 },
-            { q: "32. Determine el peso de un objeto apoyado en el suelo cuya masa es de $15\\text{ kg}$. ($g = 9,8\\text{ m/s}^2$)", options: ["147 N", "150 N", "1.5 N", "98 N"], correct: 0 },
-            { q: "33. La Primera Ley de Newton, también conocida como Ley de la Inercia, establece que un cuerpo permanece en reposo o MRU si:", options: ["Su aceleración es constante", "La fuerza neta actuante es cero", "No existe gravedad", "La masa es infinita"], correct: 1 },
-            { q: "34. Un cuerpo de $5\\text{ kg}$ de masa descansa sobre una mesa horizontal. Si el coeficiente de fricción estático es $\\mu_s = 0,3$, ¿cuál es la fuerza de rozamiento máxima estática? ($g = 9,8\\text{ m/s}^2$)", options: ["14,7 N", "15,0 N", "49,0 N", "4,9 N"], correct: 0 },
-            { q: "35. ¿Cuál es la aceleración que adquiere un cuerpo de $20\\text{ kg}$ sujeto a dos fuerzas opuestas $F_1 = 100\\text{ N}$ (hacia la derecha) y $F_2 = 40\\text{ N}$ (hacia la izquierda)?", options: ["7 m/s²", "3 m/s²", "5 m/s²", "2 m/s²"], correct: 1 },
-
-            // PLANO INCLINADO Y ESTATICA
-            { q: "36. La componente del peso de un objeto de masa $m$ paralela a un plano inclinado un ángulo $\\theta$ respecto a la horizontal es:", options: ["m·g·cos(θ)", "m·g·sen(θ)", "m·g·tan(θ)", "m·g"], correct: 1 },
-            { q: "37. Un bloque de $8\\text{ kg}$ se desliza sin rozamiento por un plano inclinado a $30^\\circ$. ¿Cuál es el valor de la fuerza neta que provoca su aceleración? ($g = 9,8\\text{ m/s}^2$)", options: ["39,2 N", "67,89 N", "78,4 N", "19,6 N"], correct: 0 },
-            { q: "38. Para que un cuerpo rígido se encuentre en equilibrio rotacional completo, la suma de todos sus momentos de fuerza o torques debe ser igual a:", options: ["La masa total", "Un valor constante positivo", "Cero", "La aceleración angular"], correct: 2 },
-            { q: "39. Se aplica una fuerza perpendicular de $30\\text{ N}$ al extremo de una llave de $0,25\\text{ m}$ de longitud. El momento de fuerza o torque generado es:", options: ["120 N·m", "7,5 N·m", "12 N·m", "1,2 N·m"], correct: 1 },
-            { q: "40. ¿Cuál es el valor de la tensión en la cuerda que sostiene en reposo y suspendido en el aire a un objeto de $12\\text{ kg}$? ($g = 9,8\\text{ m/s}^2$)", options: ["117,6 N", "120,0 N", "60,0 N", "9,8 N"], correct: 0 },
-
-            // TRABAJO, ENERGÍA Y POTENCIA
-            { q: "41. Una persona arrastra una caja ejerciendo una fuerza horizontal de $50\\text{ N}$ a lo largo de una distancia de $8\\text{ m}$. El trabajo realizado es de:", options: ["400 J", "200 J", "6,25 J", "40 J"], correct: 0 },
-            { q: "42. Calcule la energía cinética de un vehículo de $1000\\text{ kg}$ de masa que viaja a una velocidad de $20\\text{ m/s}$:", options: ["100 000 J", "200 000 J", "400 000 J", "20 000 J"], correct: 1 },
-            { q: "43. ¿Qué energía potencial gravitatoria adquiere un objeto de $4\\text{ kg}$ al elevarlo a una altura de $5\\text{ m}$ sobre el suelo? ($g = 9,8\\text{ m/s}^2$)", options: ["196 J", "200 J", "98 J", "39,2 J"], correct: 0 },
-            { q: "44. Un motor realiza un trabajo mecánico de $12 000\\text{ J}$ en un tiempo de $30\\text{ segundos}$. La potencia desarrollada por el motor es:", options: ["360 kW", "400 W", "3600 W", "40 W"], correct: 1 },
-            { q: "45. En ausencia de fuerzas no conservativas (como la fricción), la energía mecánica total de un sistema se caracteriza por:", options: ["Ser siempre cero", "Aumentar con el tiempo", "Permanecer constante", "Disminuir linealmente"], correct: 2 },
-
-            // IMPULSO Y CANTIDAD DE MOVIMIENTO
-            { q: "46. La cantidad de movimiento lineal (o ímpetu) de un cuerpo de masa $m$ que se desplaza con velocidad $v$ se calcula mediante la fórmula:", options: ["p = m · v²", "p = m · v", "p = 0.5 · m · v", "p = m / v"], correct: 1 },
-            { q: "47. Se aplica una fuerza constante de $25\\text{ N}$ sobre un objeto durante un intervalo de tiempo de $0,4\\text{ segundos}$. El impulso impartido es:", options: ["10 N·s", "62,5 N·s", "100 N·s", "2,5 N·s"], correct: 0 },
-            { q: "48. Una pelota de $0,5\\text{ kg}$ rueda a $6\\text{ m/s}$. ¿Cuál es la magnitud de su cantidad de movimiento?", options: ["12 kg·m/s", "3 kg·m/s", "1,5 kg·m/s", "18 kg·m/s"], correct: 1 },
-            { q: "49. En una colisión perfectamente inelástica entre dos cuerpos, se cumple rigurosamente que los cuerpos:", options: ["Rebotan conservando la energía cinética", "Permanecen unidos tras el impacto", "Explotan en múltiples partes", "Giran indefinidamente"], correct: 1 },
-            { q: "50. El Teorema del Impulso y la Cantidad de Movimiento establece que el impulso aplicado a un objeto es equivalente a la:", options: ["Aceleración del cuerpo", "Energía potencial ganada", "Variación en la cantidad de movimiento", "Fuerza neta dividida para el tiempo"], correct: 2 }
-        ];
-
-        // RENDERIZADO DINÁMICO DE PREGUNTAS
-        const container = document.getElementById('questions-container');
-        
-        questionsData.forEach((item, index) => {
-            const card = document.createElement('div');
-            card.className = 'card question-card shadow-sm';
-            
-            let optionsHTML = '';
-            item.options.forEach((opt, optIndex) => {
-                optionsHTML += `
-                    <div class="form-check my-2">
-                        <input class="form-check-input" type="radio" name="q${index}" id="q${index}_opt${optIndex}" value="${optIndex}">
-                        <label class="form-check-label w-100" for="q${index}_opt${optIndex}" style="cursor: pointer;">
-                            ${opt}
-                        </label>
-                    </div>
-                `;
-            });
-
-            card.innerHTML = `
-                <div class="card-body">
-                    <h5 class="card-title text-dark fw-bold mb-3">${item.q}</h5>
-                    ${optionsHTML}
-                </div>
-            `;
-            container.appendChild(card);
-        });
-
-        // ==========================================
-        // SISTEMA DE TEMPORIZADOR (80 MINUTOS EXACTOS)
-        // ==========================================
-        let totalSeconds = 80 * 60; // 80 minutos
-        const timerDisplay = document.getElementById('timer-display');
-
-        const timerInterval = setInterval(() => {
-            totalSeconds--;
-            
-            let minutes = Math.floor(totalSeconds / 60);
-            let seconds = totalSeconds % 60;
-
-            timerDisplay.textContent = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-
-            // Alerta visual últimos 5 minutos
-            if (totalSeconds <= 300) {
-                document.getElementById('timer-card').classList.remove('bg-dark');
-                document.getElementById('timer-card').classList.add('bg-danger');
-            }
-
-            if (totalSeconds <= 0) {
-                clearInterval(timerInterval);
-                alert("¡El tiempo límite de 80 minutos ha finalizado! El sistema procesará sus respuestas actuales.");
-                processAndDownloadExam(true);
-            }
-        }, 1000);
-
-        // ==========================================
-        // SEGURIDAD Y CONTROL DE PANTALLA / SECTORES
-        // ==========================================
-        let strikes = 0;
-        const maxStrikes = 3;
-        const securityModal = new bootstrap.Modal(document.getElementById('securityModal'));
-
-        function handleSecurityViolation() {
-            strikes++;
-            document.getElementById('strike-count').innerText = strikes;
-            
-            if (strikes >= maxStrikes) {
-                document.getElementById('block-title').innerText = "EVALUACIÓN ANULADA";
-                document.getElementById('block-message').innerText = "Ha superado el límite de advertencias permitidas por salir del entorno seguro.";
-                document.getElementById('block-overlay').style.display = 'block';
-                if(document.exitFullscreen) document.exitFullscreen();
-            } else {
-                securityModal.show();
-            }
-        }
-
-        // Detectar visibilidad de pestaña
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                handleSecurityViolation();
-            }
-        });
-
-        function resumeExam() {
-            securityModal.hide();
-            // Solicitar pantalla completa
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch((err) => {});
-            }
-        }
-
-        // Prevenir atajos de teclado (F12, Ctrl+C, Ctrl+V, etc)
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'F12' || 
-               (e.ctrlKey && (e.key === 'c' || e.key === 'C' || e.key === 'u' || e.key === 'U' || e.key === 's' || e.key === 'S')) ||
-               (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i'))) {
-                e.preventDefault();
-                alert("Acción no permitida por razones de seguridad.");
-            }
-        });
-
-        // ==========================================
-        // PROCESAMIENTO Y GENERACIÓN DE REPORTE CSV
-        // ==========================================
-        function confirmSubmission() {
-            const name = document.getElementById('studentName').value.trim();
-            const course = document.getElementById('studentCourse').value.trim();
-
-            if (!name || !course) {
-                alert("Por favor, complete los datos requeridos (Nombre y Curso) antes de enviar.");
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                return;
-            }
-
-            if (confirm("¿Está seguro de que desea finalizar y descargar su hoja de respuestas?")) {
-                processAndDownloadExam(false);
-            }
-        }
-
-        function processAndDownloadExam(autoSubmit) {
-            clearInterval(timerInterval);
-
-            const name = document.getElementById('studentName').value.trim() || "Estudiante_Anonimo";
-            const course = document.getElementById('studentCourse').value.trim() || "Sin_Curso";
-            const date = document.getElementById('studentDate').value;
-
-            let correctAnswersCount = 0;
-            let reportData = [];
-
-            // Encabezados del CSV
-            reportData.push(["EVALUACION DE FISICA - REPORTE DE RESPUESTAS"]);
-            reportData.push(["Estudiante:", name]);
-            reportData.push(["Curso:", course]);
-            reportData.push(["Fecha:", date]);
-            reportData.push(["Infracciones cometidas:", strikes]);
-            reportData.push(["Intento Nro:", currentAttempts]);
-            reportData.push([]);
-            reportData.push(["Pregunta", "Respuesta Seleccionada", "Estado"]);
-
-            questionsData.forEach((q, index) => {
-                const selectedOption = document.querySelector(`input[name="q${index}"]:checked`);
-                let selectedIndex = selectedOption ? parseInt(selectedOption.value) : -1;
-                let status = "No Respondida";
-                let selectedText = "Ninguna";
-
-                if (selectedIndex !== -1) {
-                    selectedText = q.options[selectedIndex].replace(/,/g, ' '); // Evitar conflicto CSV
-                    if (selectedIndex === q.correct) {
-                        status = "CORRECTA";
-                        correctAnswersCount++;
-                    } else {
-                        status = "INCORRECTA";
-                    }
-                }
-
-                reportData.push([`Pregunta ${index + 1}`, `"${selectedText}"`, status]);
-            });
-
-            // Calificación final sobre 10 y sobre 50
-            let score10 = ((correctAnswersCount / questionsData.length) * 10).toFixed(2);
-            reportData.push([]);
-            reportData.push(["TOTAL CORRECTAS:", `${correctAnswersCount} / 50`]);
-            reportData.push(["CALIFICACION ESTIMADA:", `${score10} / 10.00`]);
-
-            // Generación de archivo CSV
-            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // UTF-8 BOM para Excel
-            reportData.forEach(rowArray => {
-                let row = rowArray.join(",");
-                csvContent += row + "\r\n";
-            });
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            
-            // Limpiar nombre de archivo
-            let cleanName = name.replace(/[^a-zA-Z0-9]/g, "_");
-            link.setAttribute("download", `Respuestas_Fisica_${cleanName}.csv`);
-            document.body.appendChild(link);
-            
-            link.click();
-            document.body.removeChild(link);
-
-            // Bloquear interfaz post-envío
-            document.getElementById('block-title').innerText = "EVALUACIÓN FINALIZADA";
-            document.getElementById('block-message').innerText = `Muchas gracias ${name}. Sus respuestas han sido guardadas y descargadas correctamente. Puntaje: ${score10}/10.00`;
-            document.getElementById('block-overlay').style.display = 'block';
-        }
-    </script>
+    <!-- Lógica JavaScript Principal -->
+    <script src="index.js"></script>
 </body>
 </html>
