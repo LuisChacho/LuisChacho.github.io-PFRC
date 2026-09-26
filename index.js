@@ -1,4 +1,4 @@
-// BANCO DE 50 PREGUNTAS DE FÍSICA (Gravedad = 9.8 m/s^2 y ángulos sin aclaración implícita)
+// BANCO DE 50 PREGUNTAS DE FÍSICA (Gravedad = 9.8 m/s^2)
 const questionsData = [
     // --- MOVIMIENTO Y TRAYECTORIA ---
     {
@@ -505,7 +505,7 @@ const questionsData = [
         text: "Si se duplica la velocidad de un automóvil manteniendo su masa constante, ¿en qué factor aumenta su energía cinética?",
         options: [
             "Se cuadruplica ($4$ veces mayor).",
-            "Se duplica ($2$ times mayor).",
+            "Se duplica ($2$ veces mayor).",
             "Se triplica ($3$ veces mayor).",
             "Permanece igual."
         ],
@@ -527,11 +527,12 @@ const questionsData = [
     }
 ];
 
-// REQUERIMIENTO: 80 MINUTOS EXACTOS
+// REQUERIMIENTO: 80 MINUTOS EXACTOS Y LÍMITE DE INTENTOS
 const TOTAL_TIME = 80 * 60; // 4800 segundos
 const STORAGE_KEY = "EVAL_FISICA_50Q_STATE";
 const ATTEMPTS_KEY = "EVAL_ATTEMPTS_COUNT";
 const MAX_ATTEMPTS = 3;
+const FEEDBACK_PASS = "FISICARIAMANGA26";
 
 let state = {
     user: { name: '', id: '' },
@@ -630,6 +631,28 @@ function setupEventListeners() {
     document.getElementById('btn-download-pdf').addEventListener('click', downloadPDF);
     document.getElementById('btn-print-page').addEventListener('click', () => window.print());
     document.getElementById('btn-restart-exam').addEventListener('click', resetExam);
+    
+    // Desbloqueo de retroalimentación
+    document.getElementById('btn-unlock-feedback').addEventListener('click', unlockFeedback);
+}
+
+function unlockFeedback() {
+    const inputVal = document.getElementById('feedback-pass-input').value;
+    const errorMsg = document.getElementById('lock-error-msg');
+
+    if (inputVal === FEEDBACK_PASS) {
+        document.getElementById('feedback-lock-container').style.display = 'none';
+        const feedbackContent = document.getElementById('unlocked-feedback-content');
+        feedbackContent.style.display = 'block';
+
+        if (window.renderMathInElement) {
+            renderMathInElement(document.getElementById('review-list'), { 
+                delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}] 
+            });
+        }
+    } else {
+        errorMsg.style.display = 'block';
+    }
 }
 
 function setupSecurity() {
@@ -816,7 +839,6 @@ function finishExam() {
     state.isFinished = true;
     state.completedDate = new Date().toLocaleString('es-EC');
 
-    // Registrar incremento de intento completado
     let currentAttempts = getAttempts();
     currentAttempts++;
     localStorage.setItem(ATTEMPTS_KEY, currentAttempts.toString());
@@ -834,6 +856,12 @@ function showResultsScreen() {
     document.getElementById('res-student-name').textContent = state.user.name || "Estudiante";
     document.getElementById('res-student-id').textContent = state.user.id || "N/A";
     document.getElementById('res-date').textContent = state.completedDate || new Date().toLocaleString('es-EC');
+
+    // Estado inicial bloqueado
+    document.getElementById('feedback-lock-container').style.display = 'block';
+    document.getElementById('unlocked-feedback-content').style.display = 'none';
+    document.getElementById('feedback-pass-input').value = '';
+    document.getElementById('lock-error-msg').style.display = 'none';
 
     let score = 0;
     const reviewList = document.getElementById('review-list');
@@ -886,10 +914,6 @@ function showResultsScreen() {
     } else {
         const attemptsLeft = MAX_ATTEMPTS - getAttempts();
         btnRestart.textContent = `🔄 Volver a Intentar (Quedan ${attemptsLeft} intento${attemptsLeft > 1 ? 's' : ''})`;
-    }
-
-    if (window.renderMathInElement) {
-        renderMathInElement(reviewList, { delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}] });
     }
 }
 
